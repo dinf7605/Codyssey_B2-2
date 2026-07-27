@@ -1,0 +1,42 @@
+"""PRD 3.1 / FR-02 / FR-03에서 정한 설정값을 한 곳에 모은다.
+
+Make 시나리오에서도 동일한 값을 써야 하므로, 여기 값을 바꾸면
+docs/make-시나리오-명세.md 의 대응 항목도 함께 고쳐야 한다.
+"""
+
+# --- FR-02. RSS 피드 (미결 O1: M2에서 최종 확정) ---------------------------
+FEEDS = {
+    "ZDNet Korea": "https://zdnet.co.kr/news/news_xml.asp",
+    "전자신문": "https://rss.etnews.com/Section901.xml",
+    # 백업: 키워드가 URL에 박혀 있어 사전 필터가 가능하다.
+    "Google News": (
+        "https://news.google.com/rss/search"
+        "?q=AI+OR+인공지능+when:1d&hl=ko&gl=KR&ceid=KR:ko"
+    ),
+}
+
+PRIMARY_FEED = "ZDNet Korea"
+BACKUP_FEED = "Google News"
+
+# 회당 조회 상한 (FR-02)
+MAX_ITEMS = 20
+
+# --- FR-03. 키워드 정책 ---------------------------------------------------
+# 1순위: 제목에서만 매칭. 제목에 있으면 기사 주제일 확률이 높다.
+TIER1_KEYWORDS = ["AI", "인공지능", "LLM", "생성형", "ChatGPT", "Gemini", "Claude"]
+
+# 2순위: 1순위가 0건일 때만 본문(description)까지 확대. 수집 실패일을 줄인다.
+TIER2_KEYWORDS = ["머신러닝", "딥러닝", "반도체", "GPU", "데이터센터"]
+
+# 제외: 홍보성 기사는 요약 품질이 낮고 API 호출이 낭비된다.
+EXCLUDE_KEYWORDS = ["광고", "협찬", "이벤트", "채용", "프로모션"]
+
+# --- FR-05. AI 요약 -------------------------------------------------------
+GEMINI_MODEL = "gemini-2.5-flash"  # 미결 O2: M1에서 무료 티어 한도 확인 후 확정
+SUMMARY_MAX_LINES = 3
+SUMMARY_MAX_CHARS = 60
+
+# --- 공통 ----------------------------------------------------------------
+TIMEZONE = "Asia/Seoul"
+MAX_RETRY = 2  # NFR-05. 모든 재시도는 최대 2회
+HTTP_TIMEOUT = 20

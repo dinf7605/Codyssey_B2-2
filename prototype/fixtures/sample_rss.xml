@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  개발용 더미 피드 (R5: 테스트 반복으로 크레딧/한도를 소진하지 않기 위함).
+  일부러 아래 함정을 섞어 두었다.
+    - 제외 키워드('채용', '프로모션')가 걸린 기사
+    - 제목엔 없고 본문에만 2순위 키워드가 있는 기사
+    - pubDate가 GMT / ISO / 깨진 포맷인 기사
+    - guid가 없어 링크 해시로 키를 만들어야 하는 기사
+-->
+<rss version="2.0">
+  <channel>
+    <title>샘플 기술 뉴스</title>
+    <item>
+      <title>[채용] AI 스타트업 개발자 대규모 공채</title>
+      <link>https://example.com/news/hire-1</link>
+      <description>인공지능 기업이 채용을 진행한다.</description>
+      <pubDate>Mon, 27 Jul 2026 10:00:00 +0900</pubDate>
+      <guid>example-hire-1</guid>
+    </item>
+    <item>
+      <title>생성형 AI 에이전트, 기업 업무에 본격 투입</title>
+      <link>https://example.com/news/agent-2?utm_source=rss&amp;utm_medium=feed</link>
+      <description>&lt;p&gt;국내 주요 기업이 &lt;b&gt;LLM&lt;/b&gt; 기반 에이전트를 사내 업무에 적용하기 시작했다. 자율적 의사결정 범위와 보안 가이드라인이 함께 논의되고 있다.&lt;/p&gt;</description>
+      <pubDate>Mon, 27 Jul 2026 08:30:00 +0900</pubDate>
+      <guid>example-agent-2</guid>
+    </item>
+    <item>
+      <title>차세대 반도체 공정 경쟁 가열</title>
+      <link>https://example.com/news/semi-3</link>
+      <description>파운드리 업계가 GPU 수요 증가에 대응해 데이터센터용 물량을 늘린다.</description>
+      <pubDate>Sun, 26 Jul 2026 23:10:00 GMT</pubDate>
+      <guid>example-semi-3</guid>
+    </item>
+    <item>
+      <title>클라우드 요금제 개편 안내</title>
+      <link>https://example.com/news/cloud-4</link>
+      <description>요금 체계가 바뀐다. 머신러닝 워크로드 할인도 포함된다.</description>
+      <pubDate>2026-07-26T21:00:00+09:00</pubDate>
+    </item>
+    <item>
+      <title>인공지능 반도체 스타트업, 시리즈B 유치</title>
+      <link>https://example.com/news/funding-5</link>
+      <description>추론 전용 칩을 만드는 회사가 투자를 유치했다.</description>
+      <pubDate>어제 오후 3시</pubDate>
+      <guid>example-funding-5</guid>
+    </item>
+    <item>
+      <title>[프로모션] Gemini 활용 강의 할인 이벤트</title>
+      <link>https://example.com/news/promo-6</link>
+      <description>생성형 AI 강의를 할인 판매한다.</description>
+      <pubDate>Mon, 27 Jul 2026 11:00:00 +0900</pubDate>
+      <guid>example-promo-6</guid>
+    </item>
+  </channel>
+</rss>
