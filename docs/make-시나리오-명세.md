@@ -42,8 +42,18 @@
 > `prototype/config.py`의 `FEEDS`와 항상 같은 값을 유지할 것.
 > 피드를 바꿀 때는 `cd prototype && python check_feed.py` 로 먼저 실측한다.
 
-**출력 필드**: `title`, `url`, `dateCreated`, `description`, `guid`
-(Make의 RSS 모듈은 필드명이 `link`가 아니라 **`url`**, `pubDate`가 아니라 **`dateCreated`**다. 헷갈리기 쉬움)
+**출력 필드**: `title`, `url`, `dateCreated`, `description`, `id`
+
+⚠️ Make의 RSS 모듈은 필드명이 RSS 규격과 다르다. **화면에서 확인한 실제 이름은 아래가 맞다.**
+
+| RSS 규격 | Make 모듈 |
+|---|---|
+| `link` | **`url`** |
+| `pubDate` | **`dateCreated`** |
+| `guid` | **`id`** |
+
+`guid`라는 이름으로 매핑하면 에러 없이 **빈 값**이 나온다. 중복방지키가 조용히
+링크 해시로 넘어가므로 알아채기 어렵다 — [6]에서 반드시 `"id"`를 쓸 것.
 
 > 🔑 **날짜 관련 핵심**: RSS 모듈이 주는 `dateCreated`는 **문자열이 아니라 이미 Date 타입**이다.
 > 그래서 Notion Date 속성에 그냥 매핑하면 대개 그대로 들어간다. R1이 터지는 경우는 두 가지뿐이다.
@@ -54,30 +64,47 @@
 
 Label: `주제 매칭`
 
-조건 (AND로 묶인 두 그룹):
+## 🚨 Make Filter의 AND/OR 구조를 먼저 이해할 것
+
+Make의 Filter는 **OR가 조건을 더하는 게 아니라 그룹을 나눈다.**
 
 ```
-그룹 1 — 제외 키워드 (전부 AND)
-  {{2.title}}  Text: does not contain  광고
-  {{2.title}}  Text: does not contain  협찬
-  {{2.title}}  Text: does not contain  이벤트
-  {{2.title}}  Text: does not contain  채용
-  {{2.title}}  Text: does not contain  프로모션
-
-그룹 2 — 주제 키워드 (OR: 화면에서 'Or' 버튼으로 행 추가)
-  {{toLower(2.title)}}  Text: contains  ai
-  {{2.title}}  Text: contains  인공지능
-  {{toLower(2.title)}}  Text: contains  llm
-  {{2.title}}  Text: contains  생성형
-  {{toLower(2.title)}}  Text: contains  chatgpt
-  {{toLower(2.title)}}  Text: contains  gemini
-  {{toLower(2.title)}}  Text: contains  claude
-  {{2.title + " " + 2.description}}  Text: contains  머신러닝
-  {{2.title + " " + 2.description}}  Text: contains  딥러닝
-  {{2.title + " " + 2.description}}  Text: contains  반도체
-  {{2.title + " " + 2.description}}  Text: contains  GPU
-  {{2.title + " " + 2.description}}  Text: contains  데이터센터
+전체 판정 = (그룹1의 조건 전부 AND) OR (그룹2의 조건 전부 AND) OR ...
 ```
+
+즉 `Add OR rule`은 **새 그룹을 만든다.** "제외 5개를 AND, 주제 키워드를 OR"로 넣으면
+실제 의미는 `(제외조건들) OR (키워드1) OR (키워드2) ...` 가 되어 **제외 그룹만 참이어도
+통과한다** — AI와 무관한 기사가 전부 흘러간다. 아래처럼 구성해야 한다.
+
+### 조건 (그룹 2개, 각 그룹은 조건 6개)
+
+**그룹 1 — 핵심 키워드를 제목에서만 찾는다**
+
+| 왼쪽 | 연산자 | 오른쪽 |
+|---|---|---|
+| `{{2.title}}` | Text: Does not contain | `광고` |
+| `{{2.title}}` | Text: Does not contain | `협찬` |
+| `{{2.title}}` | Text: Does not contain | `이벤트` |
+| `{{2.title}}` | Text: Does not contain | `채용` |
+| `{{2.title}}` | Text: Does not contain | `프로모션` |
+| `{{2.title}}` | **Text: Matches pattern** | `(?i)(\b(AI\|LLM\|ChatGPT\|Gemini\|Claude)\b\|인공지능\|생성형)` |
+
+**그룹 2** — `Add OR rule`로 새 그룹을 만들고, 제외 5개를 **똑같이 다시 넣은 뒤** 마지막 줄만 바꾼다.
+
+| 왼쪽 | 연산자 | 오른쪽 |
+|---|---|---|
+| (제외 5개 동일) | | |
+| `{{2.title + " " + 2.description}}` | **Text: Matches pattern** | `(?i)(머신러닝\|딥러닝\|반도체\|데이터센터\|\bGPU\b)` |
+
+> **키워드를 정규식 한 줄로 묶는 이유**: 키워드 하나당 조건 한 줄로 하면 그룹마다 제외 5개를
+> 반복해야 해서 조건이 72개가 된다. 정규식으로 묶으면 12개로 끝난다.
+>
+> **`\b`(단어 경계)를 영문에만 붙이는 이유**: `AI`는 `said`, `again` 안에도 들어 있어 경계가
+> 없으면 오탐이 난다. 한글은 조사가 붙으므로(`인공지능이`) 경계를 요구하면 오히려 매칭에
+> 실패한다. 참조 구현 `article_filter._contains()`와 같은 정책이다.
+>
+> **그룹을 둘로 나눈 이유**: 실측 결과 `한국은행 "주가 하방 압력 제한적"` 같은 경제 기사가
+> 본문에 "AI"가 한 번 언급됐다는 이유로 걸렸다. 핵심 키워드는 제목에서만 봐야 주제가 맞다.
 
 > ⚠️ **PRD와 다른 점(의도적 단순화, PRD v1.1 FR-03에 반영됨)**
 > PRD 초안은 "1순위가 0건일 때만 2순위"라는 2단계 fallback이지만, Make의 Filter는 번들을
@@ -96,7 +123,7 @@ Label: `주제 매칭`
 | 설정 | 값 |
 |---|---|
 | Source Module | `[2] RSS` |
-| Aggregated fields | `title`, `url`, `dateCreated`, `description`, `guid` |
+| Aggregated fields | `title`, `url`, `dateCreated`, `description`, **`id`** (guid 아님) |
 
 > 🔑 이 모듈이 있는 이유: **Filter를 통과한 번들이 0개면 뒤 모듈이 아예 실행되지 않는다.**
 > Aggregator는 입력이 0개여도 "빈 배열 1개"를 반드시 내보낸다.
@@ -122,7 +149,7 @@ Make의 "Set multiple variables"는 같은 모듈 안에서 방금 만든 변수
 | `링크` | `{{get(first(sort(4.array; desc; dateCreated)); "url")}}` |
 | `본문` | `{{substring(get(first(sort(4.array; desc; dateCreated)); "description"); 0; 4000)}}` |
 | `발행일시` | `{{get(first(sort(4.array; desc; dateCreated)); "dateCreated")}}` |
-| `중복방지키` | `{{ifempty(get(first(sort(4.array; desc; dateCreated)); "guid"); md5(get(first(sort(4.array; desc; dateCreated)); "url")))}}` |
+| `중복방지키` | `{{ifempty(get(first(sort(4.array; desc; dateCreated)); "id"); md5(get(first(sort(4.array; desc; dateCreated)); "url")))}}` |
 
 > **`sort(...; desc; dateCreated)`를 쓰는 근거**: FR-03의 선택 규칙은 "pubDate가 가장 최신인 1건"이다.
 > 그냥 `first(4.array)`로 해도 대부분 맞는다(RSS는 보통 최신순으로 온다). 하지만 그건 **피드의 정렬 습관에
@@ -132,9 +159,16 @@ Make의 "Set multiple variables"는 같은 모듈 안에서 방금 만든 변수
 > **`md5`를 쓰는 근거**: Make에는 sha1이 없다. 알고리즘은 달라도 "같은 링크면 같은 키"만 지키면 된다.
 > 단, **한 번 정하면 절대 바꾸지 말 것.** 바꾸는 순간 과거 저장분과 매칭이 안 돼 전부 중복 저장된다.
 >
+> ⚠️ **필드명은 `"guid"`가 아니라 `"id"`다.** Make RSS 모듈이 guid를 `id`로 노출한다.
+> `"guid"`로 쓰면 에러 없이 빈 값이 나오고 `ifempty` 때문에 조용히 링크 해시로 넘어간다.
+>
 > ⚠️ 참조 구현은 링크의 추적 파라미터(`utm_*` 등)를 떼고 해시하지만, Make 수식에는 그 정리 단계가 없다.
-> **guid를 주는 피드를 고르면 이 문제 자체가 사라진다** — B 담당자의 피드 선정 기준에 포함할 것.
-> guid 없는 피드를 쓸 수밖에 없다면 `{{md5(replace(링크; "/\?utm_.*$/"; ""))}}` 형태로 정리 후 해시한다.
+> **id(guid)를 주는 피드를 고르면 이 문제 자체가 사라진다.** 확정 피드인 전자신문은 `id`를
+> `20260729000137` 형태의 기사 고유번호로 20/20건 제공하므로 해당 사항이 없다.
+> id 없는 피드를 쓸 수밖에 없다면 `{{md5(replace(링크; "/\?utm_.*$/"; ""))}}` 형태로 정리 후 해시한다.
+>
+> **확정 전에 실제 값을 볼 것**: `[2] RSS` 우클릭 → `Run this module only` → OUTPUT의 `id` 확인.
+> 중복방지키는 한 번 정하면 바꿀 수 없으므로 이 확인을 건너뛰지 않는다.
 
 ### [7] Notion — Search Objects / Get many Database Items
 
@@ -242,6 +276,8 @@ M1 첫 주에 실제 소모량을 한 번 재서 이 표를 확정할 것.
 
 | 증상 | 원인 | 조치 |
 |---|---|---|
+| 주제와 무관한 기사가 전부 통과 | Filter의 OR가 **그룹을 나눈다**는 걸 놓침 | 제외 조건을 각 OR 그룹에 **모두** 넣는다 ([3] 참고) |
+| 중복방지키가 항상 링크 해시 | 필드명을 `guid`로 씀 → 빈 값 | Make RSS는 **`id`**. `ifempty`가 조용히 대체하므로 값 확인 필수 |
 | 필터 뒤 모듈이 아예 실행 안 됨 | 통과 번들 0개 → 흐름 종료 | Aggregator를 끼워 빈 배열 1건을 만든다 ([4],[8]) |
 | Gemini 응답이 빈 값 | 배열 인덱스를 `[0]`으로 씀 | Make는 **1부터** 시작 |
 | Notion 400 `property does not exist` | 속성명 오타/변경 | Notion 화면의 속성명과 글자 하나까지 같아야 함 |
