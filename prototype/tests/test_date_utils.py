@@ -14,6 +14,21 @@ class TestToNotionIso(unittest.TestCase):
             "2026-07-27T08:30:00+09:00",
         )
 
+    def test_etnews_actual_pubdate(self):
+        # 1순위 피드(전자신문 Section901)에서 실제로 받은 값. 2026-07-29 확인.
+        # 새 피드를 추가하면 그 피드의 실제 샘플을 여기에 먼저 넣는다.
+        self.assertEqual(
+            to_notion_iso("Wed, 29 Jul 2026 11:25:06 +0900"),
+            "2026-07-29T11:25:06+09:00",
+        )
+
+    def test_google_news_actual_pubdate(self):
+        # 백업 피드는 GMT로 준다. 9시간 밀리면 전날로 저장되므로 반드시 확인한다.
+        self.assertEqual(
+            to_notion_iso("Wed, 29 Jul 2026 02:02:00 GMT"),
+            "2026-07-29T11:02:00+09:00",
+        )
+
     def test_rfc822_gmt_converted_to_kst(self):
         # Google News는 GMT로 준다. KST로 바꿔야 날짜가 하루 밀리지 않는다.
         self.assertEqual(

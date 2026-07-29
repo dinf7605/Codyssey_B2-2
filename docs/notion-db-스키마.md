@@ -23,8 +23,8 @@ Notion에서 이름을 바꾸면 두 곳 모두 같이 고쳐야 한다 (Notion 
 | `썸네일` | Files | ⬜ | 보너스 B1 | |
 
 > **Select 속성 주의**: Notion API로 존재하지 않는 옵션명을 보내면 자동 생성되지만,
-> 오타가 나면 `ZDNet Korea`와 `ZDNET Korea`가 별개 옵션으로 쌓인다.
-> 피드명은 `prototype/config.py`의 `FEEDS` 키를 **그대로** 쓴다.
+> 오타가 나면 `전자신문`과 `전자 신문`이 별개 옵션으로 쌓인다.
+> 피드명은 `prototype/config.py`의 `FEEDS` 키를 **그대로** 쓴다 (현재 확정값: `전자신문`).
 
 ## 3. 통합(Integration) 연결 — 여기서 제일 많이 막힌다
 

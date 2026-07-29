@@ -37,7 +37,10 @@ cd prototype/tests && python -m unittest test_article_filter.TestSelect.test_lat
 cd prototype && python pipeline.py --dry-run
 
 # 실제 RSS만 확인 (AI/Notion 호출 없음)
-cd prototype && python pipeline.py --feed "ZDNet Korea" --no-ai --skip-notion
+cd prototype && python pipeline.py --feed "전자신문" --no-ai --skip-notion
+
+# 피드 후보 비교 (guid/본문길이/날짜변환/키워드매칭을 한 번에)
+cd prototype && python check_feed.py
 ```
 
 의존성 없음 — 표준 라이브러리만 쓴다. `pip install` 불필요.

@@ -35,8 +35,12 @@
 
 | 설정 | 값 |
 |---|---|
-| URL | `prototype/config.py`의 `FEEDS`에서 확정한 주소 |
+| URL | `https://rss.etnews.com/Section901.xml` (전자신문, 미결 O1 확정) |
 | Maximum number of returned items | `20` |
+
+> ⚠️ PRD 초안의 1순위였던 ZDNet Korea(`news_xml.asp`)는 **404라 못 쓴다.**
+> `prototype/config.py`의 `FEEDS`와 항상 같은 값을 유지할 것.
+> 피드를 바꿀 때는 `cd prototype && python check_feed.py` 로 먼저 실측한다.
 
 **출력 필드**: `title`, `url`, `dateCreated`, `description`, `guid`
 (Make의 RSS 모듈은 필드명이 `link`가 아니라 **`url`**, `pubDate`가 아니라 **`dateCreated`**다. 헷갈리기 쉬움)
@@ -200,7 +204,7 @@ Request content:
 | 요약문 (Text) | `{{11.요약문}}` |
 | 원문 링크 (URL) | `{{6.링크}}` |
 | 발행일시 (Date) | `{{6.발행일시}}` |
-| 출처 (Select) | 피드명 상수 (예: `ZDNet Korea`) |
+| 출처 (Select) | 피드명 상수 — `전자신문` (`config.py`의 `FEEDS` 키와 글자까지 동일하게) |
 | 중복방지키 (Text) | `{{6.중복방지키}}` |
 | 수집일시 (Date) | `{{now}}` |
 

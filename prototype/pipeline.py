@@ -8,7 +8,7 @@ Make 각 모듈이 무엇을 해야 하는지는 docs/make-시나리오-명세.m
 사용 예:
     python pipeline.py --dry-run                 # 고정 샘플, 외부 호출 0회
     python pipeline.py --fixture fixtures/sample_rss.xml --no-ai
-    python pipeline.py --feed "ZDNet Korea" --no-ai
+    python pipeline.py --feed "전자신문" --no-ai
     python pipeline.py                           # 실제 실행 (키 3개 필요)
 """
 

@@ -4,18 +4,20 @@ Make 시나리오에서도 동일한 값을 써야 하므로, 여기 값을 바�
 docs/make-시나리오-명세.md 의 대응 항목도 함께 고쳐야 한다.
 """
 
-# --- FR-02. RSS 피드 (미결 O1: M2에서 최종 확정) ---------------------------
+# --- FR-02. RSS 피드 (미결 O1 확정: 2026-07-29) ----------------------------
+# 근거는 `python check_feed.py` 실측. ZDNet Korea(news_xml.asp)는 404라 후보에서 뺐다.
 FEEDS = {
-    "ZDNet Korea": "https://zdnet.co.kr/news/news_xml.asp",
+    # 1순위. guid 20/20건, description 평균 248자, pubDate 변환 실패 0건.
     "전자신문": "https://rss.etnews.com/Section901.xml",
-    # 백업: 키워드가 URL에 박혀 있어 사전 필터가 가능하다.
+    # 백업: 키워드가 URL에 박혀 있어 사전 필터가 가능하다. 다만 description이
+    # 평균 41자뿐이라 요약 품질이 떨어진다 — 1순위가 죽었을 때만 쓴다.
     "Google News": (
         "https://news.google.com/rss/search"
         "?q=AI+OR+인공지능+when:1d&hl=ko&gl=KR&ceid=KR:ko"
     ),
 }
 
-PRIMARY_FEED = "ZDNet Korea"
+PRIMARY_FEED = "전자신문"
 BACKUP_FEED = "Google News"
 
 # 회당 조회 상한 (FR-02)
