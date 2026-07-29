@@ -9,6 +9,7 @@ PRD 3.2 / NFR-08: RSS를 제공하지 않는 사이트는 건드리지 않는다
 
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 from xml.etree import ElementTree
 
@@ -30,7 +31,13 @@ class FeedError(Exception):
 
 
 def fetch(url, timeout=HTTP_TIMEOUT):
-    """피드 XML 원문을 가져온다. 네트워크 실패는 E-01."""
+    """피드 XML 원문을 가져온다. 네트워크 실패는 E-01.
+
+    URL에 한글이 섞여 있으면(Google News 검색 피드가 그렇다) urllib이
+    ascii 인코딩에서 터지므로 먼저 퍼센트 인코딩한다. 이미 인코딩된 URL을
+    두 번 처리하지 않도록 `%`도 safe에 넣는다.
+    """
+    url = urllib.parse.quote(url, safe=":/?#[]@!$&'()*+,;=%~")
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
