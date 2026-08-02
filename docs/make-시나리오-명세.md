@@ -76,25 +76,59 @@ Make의 Filter는 **OR가 조건을 더하는 게 아니라 그룹을 나눈다.
 실제 의미는 `(제외조건들) OR (키워드1) OR (키워드2) ...` 가 되어 **제외 그룹만 참이어도
 통과한다** — AI와 무관한 기사가 전부 흘러간다. 아래처럼 구성해야 한다.
 
-### 조건 (그룹 2개, 각 그룹은 조건 6개)
+### 조건 (그룹 2개, 각 그룹 조건 3개)
 
-**그룹 1 — 핵심 키워드를 제목에서만 찾는다**
+키워드마다 조건을 만들면 12줄이 된다. **정규식으로 묶으면 그룹당 3줄로 끝난다.**
 
-| 왼쪽 | 연산자 | 오른쪽 |
-|---|---|---|
-| `{{2.title}}` | Text: Does not contain | `광고` |
-| `{{2.title}}` | Text: Does not contain | `협찬` |
-| `{{2.title}}` | Text: Does not contain | `이벤트` |
-| `{{2.title}}` | Text: Does not contain | `채용` |
-| `{{2.title}}` | Text: Does not contain | `프로모션` |
-| `{{2.title}}` | **Text: Matches pattern** | `(?i)(\b(AI\|LLM\|ChatGPT\|Gemini\|Claude)\b\|인공지능\|생성형)` |
-
-**그룹 2** — `Add OR rule`로 새 그룹을 만들고, 제외 5개를 **똑같이 다시 넣은 뒤** 마지막 줄만 바꾼다.
+**그룹 1 — 1순위 키워드를 제목에서만 찾는다**
 
 | 왼쪽 | 연산자 | 오른쪽 |
 |---|---|---|
-| (제외 5개 동일) | | |
-| `{{2.title + " " + 2.description}}` | **Text: Matches pattern** | `(?i)(머신러닝\|딥러닝\|반도체\|데이터센터\|\bGPU\b)` |
+| `2. Title` | Does not match pattern | 아래 `제외` |
+| `2. Description` | Does not match pattern | 아래 `제외` |
+| `2. Title` | **Matches pattern** | 아래 `1순위` |
+
+**그룹 2** — `Add OR rule`로 새 그룹을 만든 뒤, 그 안을 **`Add AND rule`로** 채운다.
+
+| 왼쪽 | 연산자 | 오른쪽 |
+|---|---|---|
+| `2. Title` | Does not match pattern | 아래 `제외` |
+| `2. Description` | Does not match pattern | 아래 `제외` |
+| `2. Title` 칩 + `2. Description` 칩을 **한 칸에 나란히** | **Matches pattern** | 아래 `2순위` |
+
+> ⚠️ 그룹 2의 2·3번째 조건은 반드시 **`Add AND rule`**로 넣는다. `Add OR rule`을 누르면
+> 조건마다 그룹이 새로 생기고, `제목에 광고 없음` 같은 느슨한 그룹 하나만 만족해도 통과한다.
+> 실제로 이 실수로 20건이 전부 통과했다. **작업 후 `or` 구분선이 화면에 딱 하나만 보여야 한다.**
+
+### 정규식 — 반드시 아래 코드블록에서 복사할 것
+
+**제외** (4곳 전부 같은 값)
+```
+(광고|협찬|이벤트|채용|프로모션)
+```
+
+**1순위**
+```
+(\bAI\b|인공지능|\bLLM\b|생성형|ChatGPT|Gemini|Claude)
+```
+
+**2순위**
+```
+(머신러닝|딥러닝|반도체|\bGPU\b|데이터센터)
+```
+
+> **`\b`(단어 경계)를 붙인 이유**: `AI`, `LLM`, `GPU`는 짧아서 `said`, `again`, `mail` 안에
+> 그냥 걸린다. `\b`가 있으면 독립된 단어일 때만 매칭된다. 한글은 조사가 붙어도(`인공지능이`)
+> 매칭돼야 하므로 경계를 붙이지 않는다. 참조 구현 `article_filter._contains()`와 같은 판단이다.
+>
+> **`(?i)`를 쓰지 말 것.** Make는 JavaScript 정규식이라 인라인 플래그를 지원하지 않는다.
+> 대소문자를 무시하려면 왼쪽 칩을 `{{lower(2.title)}}`로 감싸고 패턴의 영문을 소문자로 쓴다.
+> 국내 기사는 `AI`/`LLM`/`GPU`를 대문자로 쓰므로 v1은 대소문자 구분 상태로 둔다.
+>
+> **마크다운 표에서 복사하지 말 것.** 표 안에서는 `|`를 `\|`로 써야 해서, 그대로 붙여넣으면
+> `인공지능\|bLLM\b`처럼 뒤집힌다. 에러는 안 나고 **그 키워드만 조용히 죽는다.**
+
+**실측 (2026-07-29, 전자신문 Section901 20건)**: 통과 **9건**. 수정 전에는 20건 전부 통과했다.
 
 > **키워드를 정규식 한 줄로 묶는 이유**: 키워드 하나당 조건 한 줄로 하면 그룹마다 제외 5개를
 > 반복해야 해서 조건이 72개가 된다. 정규식으로 묶으면 12개로 끝난다.
@@ -194,7 +228,7 @@ Source Module: `[7] Notion`. ([4]와 같은 이유 — 0건일 때 흐름이 끊
 
 | 설정 | 값 |
 |---|---|
-| URL | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
+| URL | `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent` |
 | Method | `POST` |
 | Headers | `Content-Type: application/json` / `x-goog-api-key: (Connection 또는 Keychain에 저장한 키)` |
 | Body type | `Raw` / `JSON (application/json)` |
@@ -284,3 +318,8 @@ M1 첫 주에 실제 소모량을 한 번 재서 이 표를 확정할 것.
 | Notion 404 | 통합을 DB에 연결 안 함 | DB 페이지 → `...` → Connections → 통합 추가 |
 | 09:00이 아닌 시각에 실행 | 프로필 타임존 미설정 | Make 프로필 → Time zone → Asia/Seoul |
 | 같은 기사가 매일 저장됨 | guid 없는 피드 + 링크에 추적 파라미터 | `md5`로 감싸기 전에 파라미터를 떼거나 guid 있는 피드로 교체 |
+| `references non-existing module [N]` | **명세서의 `[N]`은 설계 순번이고, Make는 만든 순서로 번호를 매긴다** | 번호를 타이핑하지 말고 오른쪽 패널에서 **칩을 클릭**해 넣는다 |
+| 특정 키워드만 매칭이 안 됨 (에러는 없음) | 마크다운 표에서 정규식을 복사해 `\|`가 섞임 → `인공지능\|bLLM\b` | 명세서 [3]의 **코드블록**에서 복사한다 |
+| Gemini `404 no longer available to new users` | 신규 계정에 닫힌 구형 모델 | AI Studio > 비율 제한에서 **RPD가 `0/0`이 아닌** 모델로 교체 |
+| Gemini `400` + Google HTML 에러 페이지 | GET 요청에 본문을 실어 보냄 | `Body content type`을 **비운다**. `{}`도 넣으면 안 된다 |
+| `Body structure`가 필수라며 막힘 | `Body input method`가 `Data structure`로 바뀜 | `JSON string`으로 되돌린다 |

@@ -34,7 +34,10 @@ TIER2_KEYWORDS = ["머신러닝", "딥러닝", "반도체", "GPU", "데이터센
 EXCLUDE_KEYWORDS = ["광고", "협찬", "이벤트", "채용", "프로모션"]
 
 # --- FR-05. AI 요약 -------------------------------------------------------
-GEMINI_MODEL = "gemini-2.5-flash"  # 미결 O2: M1에서 무료 티어 한도 확인 후 확정
+# 미결 O2 확정 (2026-07-29). gemini-2.5-flash는 "신규 사용자에게 더 이상 제공되지 않음"
+# 404를 반환했다. 무료 한도가 열려 있는 모델은 AI Studio > 비율 제한에서 확인한다
+# (RPD가 0/0이면 그 계정에서 못 쓴다).
+GEMINI_MODEL = "gemini-3.5-flash"
 SUMMARY_MAX_LINES = 3
 SUMMARY_MAX_CHARS = 60
 
