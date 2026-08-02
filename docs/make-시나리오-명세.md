@@ -13,7 +13,9 @@
 |---|---|---|
 | Make 프로필 타임존 | `Asia/Seoul` | 스케줄이 UTC로 돌아 09:00이 18:00에 실행된다 |
 | Connection 등록 | Notion, Google(Gemini) | 모듈에 키를 직접 타이핑하면 NFR-06 위반 |
-| 시나리오 설정 → Sequential processing | **켜기** | 번들이 병렬 처리되며 중복 저장이 새어 나온다 |
+| 시나리오 설정 → **Store incomplete executions** | **Yes** | 이게 꺼져 있으면 `Retry` 에러 핸들러가 동작하지 않는다 |
+| 시나리오 설정 → **Process data in order** | **No (끄기)** | ⚠️ 켜면 **미완료 실행 1건이 이후 모든 예약 실행을 막는다.** 아무도 안 보는 사이 S1(7일 연속)이 통째로 날아간다. 본 시나리오는 1일 1회·번들 1개라 동시 실행 자체가 없고, 중복 방지는 중복방지키 + Notion 조회로 이미 보장된다 |
+| 시나리오 설정 → Keep data confidential | No | 켜면 로그에 데이터가 안 남아 디버깅도 제출 스크린샷도 불가 |
 
 ---
 
@@ -251,8 +253,12 @@ Request content:
 응답에서 쓸 값: `{{10.data.candidates[1].content.parts[1].text}}`
 (Make 배열 인덱스는 **1부터** 시작한다. 0으로 쓰면 빈 값이 나온다.)
 
-**에러 핸들러** (모듈 우클릭 → Add error handler):
-- `Break` 지정, Number of attempts `2`, Interval `5분` → E-05/E-06 재시도 상한
+**에러 핸들러** (모듈 우클릭 → Add error handler): **`Resume`** (출력값 비움)
+
+> **여기에 `Retry`를 걸면 안 된다.** E-06은 "요약이 실패해도 나머지 필드는 저장"이다.
+> `Resume`이면 출력이 비고, [11]의 `ifempty`가 `요약 실패`를 채워 저장이 그대로 진행된다.
+> 현재 Make UI의 핸들러는 `Retry` / `Resume` / `Commit` / `Rollback` / `skip` 5종이다
+> (`Break`는 `Store incomplete executions`를 켜야 나타나며, 본 프로젝트는 쓰지 않는다).
 - 최종 실패 시에도 저장은 진행돼야 하므로 → 아래 [11]에서 `ifempty`로 방어
 
 ### [11] Tools — Set variable (요약문 후처리)
@@ -285,7 +291,14 @@ Request content:
 4차: 속성을 비우고 나머지만 저장                                    (E-08)
 ```
 
-**에러 핸들러**: `Break`, attempts `2`, interval `5분` → 실패 시 E-09 알림 대상.
+**에러 핸들러**: **`Retry`** — `Retry automatically: Yes` / `Number of retries: 2` / `Minutes between retries: 5`.
+RSS [2]에도 같은 설정을 건다(E-01). 2회 모두 실패하면 미완료 실행으로 남고 Make가 알린다 → E-09.
+
+> 이 핸들러는 실행을 **에러가 아니라 경고**로 끝낸다. Notion이 하루 삐끗해도 S1(7일 연속)이
+> 안 깨지는 대신, **실패가 조용히 지나간다.** 7일 운영 중 시나리오의
+> `Incomplete executions` 탭을 주기적으로 확인할 것.
+>
+> `skip`은 쓰지 않는다 — 실패한 번들을 조용히 버려서 E-09의 "알림 대상" 요건이 무너진다.
 
 ---
 
